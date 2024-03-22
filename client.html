@@ -7,50 +7,74 @@
     <title>Chat App</title>
 </head>
 <body>
-
-    <div class="chat-container">
-        <div id = "message-list">
-            <!--List will contain messages-->
-        </div>
-        <input type="text" id="message-input">
-        <button id="send-message">Send</button>
+    <div id="login-container">
+        <!-- Create a form to enter username and room ID -->
+        <form id="login-form">
+            <input type="text" id="username-input" placeholder="Enter your username" required>
+            <input type="text" id="room-input" placeholder="Enter room ID" required>
+            <button id='start-chatting' type="submit">Start Chatting</button>
+        </form>
     </div>
-    <script src="http://localhost:3200/socket.io/socket.io.js"></script>
 
+    <div id="chat-container">
+        <!-- Create a message display area -->
+        <div id="message-display">
+            <!-- Messages will be appended here -->
+        </div>
+
+        <!-- Create a form to send messages -->
+        <form id="message-form">
+            <input type="text" id="message-input" placeholder="Type your message" required>
+            <button type="submit">Send</button>
+        </form>
+    </div>
+
+    <script src="http://localhost:3000/socket.io/socket.io.js"></script>
     <script>
-        // socket code in js.
-        const socket = io.connect('http://localhost:3200');
-        const username = prompt("Enter your Name");
-        //emit the user Name
-        socket.emit('join', username);
+        const socket = io.connect('http://localhost:3000');
 
-        const messageInput = document.getElementById("message-input")
-        const messageList = document.getElementById("message-list")
-        const sendButton= document.getElementById("send-message")
+        const loginContainer = document.getElementById('login-container');
+        const chatContainer = document.getElementById('chat-container');
+        const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('message-input');
+        const messageDisplay = document.getElementById('message-display');
 
-        sendButton.addEventListener('click', function(){
-            //read the message from Input and send to server
+        let username = '';
+        let room = '';
+
+        // Event handler for the login form
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            // Get the username and room from the form
+            username = document.getElementById('username-input').value;
+            room = document.getElementById('room-input').value;
+            
+            // Hide the login container and show the chat container
+            loginContainer.style.display = 'none';
+            chatContainer.style.display = 'block';
+            // Join the room by emitting a 'join' event
+            socket.emit('join', { username, room });
+        });
+
+        // Event handler for the message form
+        messageForm.addEventListener('submit', (e) => {
+            e.preventDefault();
             const message = messageInput.value;
-            if(message){
-                socket.emit('new_message', message);
+            // Emit a 'sendMessage' event to send the message to the server
+            socket.emit('sendMessage', { username, message, room });
 
-                //add message to the list
-                const messageElement = document.createElement("div");
-                messageElement.innerText = username+" : "+message;
+            messageInput.value = '';
+        });
 
-                messageList.appendChild(messageElement);
-
-                messageInput.value = "";
-            }
-        })
-
-        //Listen for Broadcast message and update the list
-
-        socket.on('broadcast_message', (userMessage) => {
+        // Listen for incoming messages from the server
+        socket.on('message', (message) => {
+            // Display the received message in the message display area
             const messageElement = document.createElement('div');
-            messageElement.innerText = userMessage.username + " : "+ userMessage.message;
-            messageList.appendChild(messageElement)
-        })
+            messageElement.innerHTML = `<strong>${message.username ? message.username + ":": ""}</strong> ${message.text}`;
+            messageDisplay.appendChild(messageElement);
+        });
     </script>
+
+
 </body>
 </html>

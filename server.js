@@ -21,20 +21,29 @@ const io = new Server(server, {
 io.on('connect',  (socket) =>{
     console.log("Connect is established");
 
-    socket.on('join', (data) => {
-        socket.username = data;
-    })
+    socket.on("join", (data) => {
+        // Emit a welcome message to the user who joined
+        socket.emit("message", { text: `Welcome, ${data.username}!` });
 
-    socket.on('new_message', (message)=>{
-        let userMessage = {
-            username: socket.username,
-            message : message
-        }
+        // Broadcast a message to all other users in the same room
+        socket.broadcast.to(data.room).emit("message", {
+            text: `${data.username} has joined the room.`
+        });
 
-        //broadcast this message to users
-        socket.broadcast.emit('broadcast_message', userMessage);
+        // Join the room
+        socket.join(data.room);
+    });
 
-    })
+    socket.on("sendMessage", async (data) => {
+
+        // write your code here
+
+        // Broadcast the received message to all users in the same room
+        io.to(data.room).emit("message", {
+            username: data.username,
+            text: data.message
+        });
+    });
 
     socket.on('disconnect', () =>{
         console.log("Connection is disconnected");
